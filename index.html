@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Grocery Crate</title>
+<meta name="description" content="Your usual pantry, always on hand — build shopping lists and check off items as you shop.">
+<meta name="theme-color" content="#1F3329">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Grocery Crate">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #1F3329;
+    --panel: #2A4438;
+    --panel-hi: #345444;
+    --kraft: #D8B983;
+    --stencil: #E8A33D;
+    --paper: #F5F0E3;
+    --ink: #17201A;
+    --stamp: #B23A2E;
+    --stamp-dim: #8f3128;
+    --line: rgba(245,240,227,0.14);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--paper);
+    font-family: 'Karla', sans-serif;
+    display:flex;
+    justify-content:center;
+    overflow:hidden;
+  }
+  #app{
+    width:100%;
+    max-width:480px;
+    height:100vh;
+    height:100dvh;
+    display:flex;
+    flex-direction:column;
+    background: var(--bg);
+    position:relative;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px);
+    background-size: 100% 44px;
+    background-position: 0 118px;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    padding: 22px 20px 14px;
+    background: linear-gradient(180deg, #24392D, #1F3329);
+    border-bottom: 3px solid var(--kraft);
+    position:relative;
+    flex-shrink:0;
+  }
+  header .crate-label{
+    display:inline-block;
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    font-size:26px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    color: var(--kraft);
+    border: 3px solid var(--kraft);
+    border-radius: 3px;
+    padding: 4px 12px;
+    transform: rotate(-1.5deg);
+  }
+  header .tagline{
+    margin-top:8px;
+    font-size:12px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color: rgba(245,240,227,0.55);
+    font-family:'Oswald', sans-serif;
+  }
+
+  /* ---------- TABS ---------- */
+  nav.tabs{
+    display:flex;
+    flex-shrink:0;
+    background: var(--panel);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  nav.tabs button{
+    flex:1;
+    background:none;
+    border:none;
+    color: rgba(245,240,227,0.5);
+    font-family:'Oswald', sans-serif;
+    font-size:13px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    padding: 14px 4px 12px;
+    cursor:pointer;
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  nav.tabs button .count{
+    font-family:'Karla',sans-serif;
+    font-size:11px;
+    letter-spacing:0;
+    background: var(--stencil);
+    color: var(--ink);
+    padding: 0px 6px;
+    border-radius: 10px;
+    font-weight:700;
+    min-width:16px;
+  }
+  nav.tabs button.active{ color: var(--stencil); }
+  nav.tabs button.active::before{
+    content:"";
+    position:absolute;
+    top:0; left:16%; right:16%;
+    height:3px;
+    background: var(--stencil);
+    border-radius: 0 0 3px 3px;
+  }
+
+  /* ---------- ADD ROW ---------- */
+  .add-row{
+    display:flex;
+    gap:8px;
+    padding: 14px 16px;
+    flex-shrink:0;
+    border-bottom: 1px solid var(--line);
+  }
+  .add-row input{
+    flex:1;
+    background: var(--paper);
+    color: var(--ink);
+    border:none;
+    border-radius:4px;
+    padding: 11px 12px;
+    font-family:'Karla',sans-serif;
+    font-size:15px;
+    font-weight:500;
+  }
+  .add-row input:focus{ outline: 2px solid var(--stencil); }
+  .add-row button{
+    background: var(--kraft);
+    color: var(--ink);
+    border:none;
+    border-radius:4px;
+    padding: 0 18px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:13px;
+    cursor:pointer;
+  }
+  .add-row button:active{ transform: translateY(1px); }
+
+  /* ---------- LIST AREA ---------- */
+  main{
+    flex:1;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    padding: 6px 12px 16px;
+  }
+  .empty{
+    text-align:center;
+    color: rgba(245,240,227,0.4);
+    font-family:'Oswald',sans-serif;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:13px;
+    margin-top: 60px;
+    line-height:1.8;
+  }
+
+  .row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background: var(--panel);
+    border-radius:6px;
+    padding: 12px 10px;
+    margin: 6px 0;
+    border: 1px solid var(--line);
+    transition: background .15s, opacity .15s;
+  }
+  .row.dragging{
+    opacity: 0.85;
+    background: var(--panel-hi);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.35);
+    z-index: 20;
+  }
+
+  .handle{
+    color: rgba(245,240,227,0.3);
+    font-size:18px;
+    padding: 4px 2px;
+    cursor: grab;
+    touch-action: none;
+    user-select:none;
+    line-height:0;
+  }
+
+  .checkbox{
+    width:24px; height:24px;
+    flex-shrink:0;
+    border-radius:5px;
+    border: 2px solid var(--kraft);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    background: transparent;
+  }
+  .checkbox.checked{
+    background: var(--stencil);
+    border-color: var(--stencil);
+  }
+  .checkbox svg{ width:15px; height:15px; opacity:0; }
+  .checkbox.checked svg{ opacity:1; }
+
+  .item-name{
+    flex:1;
+    font-size:16px;
+    font-weight:500;
+    background:transparent;
+    border:none;
+    color: var(--paper);
+    font-family:'Karla',sans-serif;
+    padding: 4px 2px;
+    min-width:0;
+  }
+  .item-name:focus{ outline:none; border-bottom: 1px solid var(--stencil); }
+  .row.checked .item-name{
+    text-decoration: line-through;
+    color: rgba(245,240,227,0.35);
+  }
+
+  .stamp{
+    font-family:'Oswald',sans-serif;
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:1px;
+    color: var(--stamp);
+    border: 2px solid var(--stamp);
+    border-radius:4px;
+    padding: 2px 5px;
+    transform: rotate(-9deg);
+    opacity:0;
+    transition: opacity .2s, transform .2s;
+    flex-shrink:0;
+    white-space:nowrap;
+  }
+  .row.checked .stamp{ opacity:0.85; transform: rotate(-9deg) scale(1); }
+
+  .del{
+    background:none;
+    border:none;
+    color: rgba(245,240,227,0.35);
+    font-size:20px;
+    cursor:pointer;
+    flex-shrink:0;
+    padding: 2px 4px;
+    line-height:1;
+  }
+  .del:active{ color: var(--stamp); }
+
+  /* pantry select checkbox uses kraft tone */
+  .pantry-row .checkbox.checked{ background: var(--kraft); border-color: var(--kraft); }
+
+  /* ---------- FLOATING ACTION BAR ---------- */
+  .fab-wrap{
+    flex-shrink:0;
+    max-height:0;
+    overflow:hidden;
+    padding: 0 12px;
+    transition: max-height .22s ease, padding .22s ease;
+  }
+  .fab-wrap.show{
+    max-height: 72px;
+    padding: 8px 12px;
+  }
+  .fab-bar{
+    background: var(--stencil);
+    color: var(--ink);
+    border-radius: 8px;
+    padding: 13px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:0.5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .fab-bar button{
+    background: var(--ink);
+    color: var(--paper);
+    border:none;
+    border-radius:5px;
+    padding: 9px 14px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:12px;
+    cursor:pointer;
+  }
+
+  .list-tools{
+    display:flex;
+    gap:8px;
+    padding: 4px 4px 10px;
+  }
+  .list-tools button{
+    background:none;
+    border: 1px solid var(--line);
+    color: rgba(245,240,227,0.55);
+    border-radius:20px;
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding: 6px 12px;
+    cursor:pointer;
+  }
+  .list-tools button:active{ background: var(--panel); }
+
+  .loading{
+    text-align:center;
+    color: rgba(245,240,227,0.4);
+    margin-top:60px;
+    font-family:'Oswald',sans-serif;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:13px;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="crate-label">Grocery Crate</div>
+    <div class="tagline" id="tagline">your usual pantry, always on hand</div>
+  </header>
+
+  <div class="add-row">
+    <input id="addInput" type="text" placeholder="Add an item…" autocomplete="off" />
+    <button id="addBtn">Add</button>
+  </div>
+
+  <main id="main"><div class="loading">Unpacking your crate…</div></main>
+
+  <div class="fab-wrap" id="fabWrap">
+    <div class="fab-bar">
+      <span id="fabText">0 selected</span>
+      <button id="fabAction">Add to list</button>
+    </div>
+  </div>
+
+  <nav class="tabs">
+    <button id="tabPantry" class="active">
+      Pantry <span class="count" id="pantryCount">0</span>
+    </button>
+    <button id="tabList">
+      Shopping List <span class="count" id="listCount">0</span>
+    </button>
+  </nav>
+</div>
+
+<script>
+(function(){
+  // When running inside Claude, window.storage is provided natively.
+  // When installed standalone (GitHub Pages / home screen app), fall back
+  // to the browser's own localStorage with the same async interface.
+  if(!window.storage){
+    window.storage = {
+      async get(key, shared){
+        var k = (shared ? 'shared:' : 'personal:') + key;
+        var v = localStorage.getItem(k);
+        if(v === null) return null;
+        return {key: key, value: v, shared: !!shared};
+      },
+      async set(key, value, shared){
+        var k = (shared ? 'shared:' : 'personal:') + key;
+        localStorage.setItem(k, value);
+        return {key: key, value: value, shared: !!shared};
+      },
+      async delete(key, shared){
+        var k = (shared ? 'shared:' : 'personal:') + key;
+        localStorage.removeItem(k);
+        return {key: key, deleted: true, shared: !!shared};
+      },
+      async list(prefix, shared){
+        var pre = (shared ? 'shared:' : 'personal:') + (prefix || '');
+        var keys = [];
+        for(var i=0; i<localStorage.length; i++){
+          var k = localStorage.key(i);
+          if(k.indexOf(pre) === 0) keys.push(k.slice((shared?'shared:':'personal:').length));
+        }
+        return {keys: keys, prefix: prefix, shared: !!shared};
+      }
+    };
+  }
+  var STORAGE = window.storage;
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('service-worker.js').catch(function(){});
+    });
+  }
+  var pantry = [];       // {id, name}
+  var shoppingList = []; // {id, name, checked}
+  var activeTab = 'pantry';
+  var selectedForList = {}; // pantry id -> true
+  var loaded = false;
+
+  var mainEl = document.getElementById('main');
+  var addInput = document.getElementById('addInput');
+  var addBtn = document.getElementById('addBtn');
+  var tabPantry = document.getElementById('tabPantry');
+  var tabList = document.getElementById('tabList');
+  var pantryCount = document.getElementById('pantryCount');
+  var listCount = document.getElementById('listCount');
+  var fabBar = document.getElementById('fabWrap');
+  var fabText = document.getElementById('fabText');
+  var fabAction = document.getElementById('fabAction');
+  var tagline = document.getElementById('tagline');
+
+  function uid(){ return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  async function loadData(){
+    try{
+      var p = await STORAGE.get('pantry', false);
+      pantry = p ? JSON.parse(p.value) : [];
+    }catch(e){ pantry = []; }
+    try{
+      var s = await STORAGE.get('shopping-list', false);
+      shoppingList = s ? JSON.parse(s.value) : [];
+    }catch(e){ shoppingList = []; }
+    loaded = true;
+    render();
+  }
+
+  async function savePantry(){
+    try{ await STORAGE.set('pantry', JSON.stringify(pantry), false); }
+    catch(e){ console.error('save pantry failed', e); }
+  }
+  async function saveList(){
+    try{ await STORAGE.set('shopping-list', JSON.stringify(shoppingList), false); }
+    catch(e){ console.error('save list failed', e); }
+  }
+
+  function switchTab(tab){
+    activeTab = tab;
+    tabPantry.classList.toggle('active', tab==='pantry');
+    tabList.classList.toggle('active', tab==='list');
+    addInput.placeholder = tab==='pantry' ? 'Add an item to your pantry…' : 'Add an item to this trip…';
+    tagline.textContent = tab==='pantry' ? 'your usual pantry, always on hand' : 'check items off as you shop';
+    render();
+  }
+  tabPantry.addEventListener('click', function(){ switchTab('pantry'); });
+  tabList.addEventListener('click', function(){ switchTab('list'); });
+
+  function addItem(){
+    var val = addInput.value.trim();
+    if(!val) return;
+    if(activeTab === 'pantry'){
+      pantry.push({id: uid(), name: val});
+      savePantry();
+    } else {
+      shoppingList.push({id: uid(), name: val, checked:false});
+      saveList();
+    }
+    addInput.value = '';
+    render();
+  }
+  addBtn.addEventListener('click', addItem);
+  addInput.addEventListener('keydown', function(e){ if(e.key==='Enter') addItem(); });
+
+  function updateFab(){
+    if(activeTab !== 'pantry'){ fabBar.classList.remove('show'); return; }
+    var n = Object.keys(selectedForList).filter(function(k){return selectedForList[k];}).length;
+    if(n > 0){
+      fabText.textContent = n + ' selected';
+      fabBar.classList.add('show');
+    } else {
+      fabBar.classList.remove('show');
+    }
+  }
+
+  fabAction.addEventListener('click', function(){
+    var ids = Object.keys(selectedForList).filter(function(k){return selectedForList[k];});
+    ids.forEach(function(id){
+      var item = pantry.find(function(p){ return p.id === id; });
+      if(!item) return;
+      var already = shoppingList.some(function(s){ return s.name.toLowerCase() === item.name.toLowerCase() && !s.checked; });
+      if(!already){
+        shoppingList.push({id: uid(), name: item.name, checked:false});
+      }
+    });
+    selectedForList = {};
+    saveList();
+    switchTab('list');
+  });
+
+  function checkSvg(){
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="#17201A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  }
+
+  function renderCounts(){
+    pantryCount.textContent = pantry.length;
+    listCount.textContent = shoppingList.filter(function(s){return !s.checked;}).length;
+  }
+
+  function render(){
+    if(!loaded) return;
+    renderCounts();
+    updateFab();
+    mainEl.innerHTML = '';
+
+    if(activeTab === 'pantry'){
+      if(pantry.length === 0){
+        mainEl.innerHTML = '<div class="empty">Your pantry is empty.<br>Add the things you usually buy above.</div>';
+        return;
+      }
+      pantry.forEach(function(item){
+        var row = document.createElement('div');
+        row.className = 'row pantry-row';
+        row.dataset.id = item.id;
+
+        var cb = document.createElement('div');
+        cb.className = 'checkbox' + (selectedForList[item.id] ? ' checked' : '');
+        cb.innerHTML = checkSvg();
+        cb.addEventListener('click', function(){
+          selectedForList[item.id] = !selectedForList[item.id];
+          render();
+        });
+
+        var name = document.createElement('input');
+        name.className = 'item-name';
+        name.value = item.name;
+        name.addEventListener('change', function(){
+          item.name = name.value.trim() || item.name;
+          savePantry();
+        });
+
+        var onList = shoppingList.some(function(s){ return s.name.toLowerCase() === item.name.toLowerCase() && !s.checked; });
+        if(onList){
+          var tag = document.createElement('span');
+          tag.className = 'stamp';
+          tag.style.opacity = '0.85';
+          tag.textContent = 'ON LIST';
+          row.appendChild(cb);
+          row.appendChild(name);
+          row.appendChild(tag);
+        } else {
+          row.appendChild(cb);
+          row.appendChild(name);
+        }
+
+        var del = document.createElement('button');
+        del.className = 'del';
+        del.textContent = '✕';
+        del.addEventListener('click', function(){
+          pantry = pantry.filter(function(p){ return p.id !== item.id; });
+          delete selectedForList[item.id];
+          savePantry();
+          render();
+        });
+        row.appendChild(del);
+
+        mainEl.appendChild(row);
+      });
+    } else {
+      var tools = document.createElement('div');
+      tools.className = 'list-tools';
+      var clearChecked = document.createElement('button');
+      clearChecked.textContent = 'Clear checked';
+      clearChecked.addEventListener('click', function(){
+        shoppingList = shoppingList.filter(function(s){ return !s.checked; });
+        saveList(); render();
+      });
+      var clearAll = document.createElement('button');
+      clearAll.textContent = 'Clear list';
+      var confirmingClear = false;
+      var confirmTimer = null;
+      clearAll.addEventListener('click', function(){
+        if(!shoppingList.length) return;
+        if(!confirmingClear){
+          confirmingClear = true;
+          clearAll.textContent = 'Tap again to confirm';
+          clearAll.style.borderColor = 'var(--stamp)';
+          clearAll.style.color = 'var(--stamp)';
+          confirmTimer = setTimeout(function(){
+            confirmingClear = false;
+            clearAll.textContent = 'Clear list';
+            clearAll.style.borderColor = '';
+            clearAll.style.color = '';
+          }, 3000);
+        } else {
+          clearTimeout(confirmTimer);
+          confirmingClear = false;
+          shoppingList = [];
+          saveList(); render();
+        }
+      });
+      tools.appendChild(clearChecked);
+      tools.appendChild(clearAll);
+      mainEl.appendChild(tools);
+
+      if(shoppingList.length === 0){
+        var e = document.createElement('div');
+        e.className = 'empty';
+        e.innerHTML = 'No list yet.<br>Go to Pantry, select items, and tap "Add to list" — or add items above.';
+        mainEl.appendChild(e);
+        return;
+      }
+
+      shoppingList.forEach(function(item){
+        var row = document.createElement('div');
+        row.className = 'row' + (item.checked ? ' checked' : '');
+        row.dataset.id = item.id;
+
+        var handle = document.createElement('div');
+        handle.className = 'handle';
+        handle.innerHTML = '&#8942;&#8942;';
+        row.appendChild(handle);
+
+        var cb = document.createElement('div');
+        cb.className = 'checkbox' + (item.checked ? ' checked' : '');
+        cb.innerHTML = checkSvg();
+        cb.addEventListener('click', function(){
+          item.checked = !item.checked;
+          saveList(); render();
+        });
+        row.appendChild(cb);
+
+        var name = document.createElement('input');
+        name.className = 'item-name';
+        name.value = item.name;
+        name.addEventListener('change', function(){
+          item.name = name.value.trim() || item.name;
+          saveList();
+        });
+        row.appendChild(name);
+
+        var stamp = document.createElement('div');
+        stamp.className = 'stamp';
+        stamp.textContent = 'GOT IT';
+        row.appendChild(stamp);
+
+        var del = document.createElement('button');
+        del.className = 'del';
+        del.textContent = '✕';
+        del.addEventListener('click', function(){
+          shoppingList = shoppingList.filter(function(s){ return s.id !== item.id; });
+          saveList(); render();
+        });
+        row.appendChild(del);
+
+        mainEl.appendChild(row);
+        initDrag(handle, row);
+      });
+    }
+  }
+
+  /* ---------- DRAG TO REORDER (shopping list only) ---------- */
+  function initDrag(handle, row){
+    var startY = 0, dragging = false, placeholder = null, rowH = 0;
+
+    handle.addEventListener('pointerdown', function(e){
+      e.preventDefault();
+      dragging = true;
+      startY = e.clientY;
+      rowH = row.offsetHeight;
+      row.classList.add('dragging');
+      row.style.position = 'relative';
+      row.style.zIndex = 20;
+      placeholder = document.createElement('div');
+      placeholder.style.height = rowH + 'px';
+      placeholder.style.margin = '6px 0';
+      row.parentNode.insertBefore(placeholder, row.nextSibling);
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    handle.addEventListener('pointermove', function(e){
+      if(!dragging) return;
+      var dy = e.clientY - startY;
+      row.style.transform = 'translateY(' + dy + 'px)';
+
+      var siblings = Array.prototype.slice.call(mainEl.querySelectorAll('.row')).filter(function(r){ return r !== row; });
+      var rowRect = row.getBoundingClientRect();
+      var rowMid = rowRect.top + rowRect.height/2;
+
+      for(var i=0;i<siblings.length;i++){
+        var s = siblings[i];
+        var r = s.getBoundingClientRect();
+        var mid = r.top + r.height/2;
+        if(rowMid < mid && rowMid > r.top - r.height/2 && s.previousSibling !== placeholder){
+          mainEl.insertBefore(placeholder, s);
+          break;
+        } else if(rowMid > mid && s.nextSibling !== placeholder){
+          if(rowRect.top > r.top){
+            mainEl.insertBefore(placeholder, s.nextSibling);
+          }
+        }
+      }
+    });
+
+    function endDrag(e){
+      if(!dragging) return;
+      dragging = false;
+      row.classList.remove('dragging');
+      row.style.transform = '';
+      row.style.zIndex = '';
+      if(placeholder && placeholder.parentNode){
+        placeholder.parentNode.insertBefore(row, placeholder);
+        placeholder.parentNode.removeChild(placeholder);
+      }
+      placeholder = null;
+
+      // rebuild shoppingList order from DOM
+      var ids = Array.prototype.slice.call(mainEl.querySelectorAll('.row')).map(function(r){ return r.dataset.id; });
+      shoppingList.sort(function(a,b){ return ids.indexOf(a.id) - ids.indexOf(b.id); });
+      saveList();
+    }
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+  }
+
+  loadData();
+})();
+</script>
+</body>
+</html>
