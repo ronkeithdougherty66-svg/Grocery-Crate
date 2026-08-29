@@ -14,6 +14,8 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.2/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/10.13.2/firebase-database-compat.min.js"></script>
 <style>
   :root{
     --bg: #1F3329;
@@ -83,6 +85,125 @@
     font-family:'Oswald', sans-serif;
   }
 
+  .sync-btn{
+    position:absolute;
+    top:22px; right:20px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 6px 12px;
+    color: rgba(245,240,227,0.7);
+    font-family:'Oswald',sans-serif;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    cursor:pointer;
+  }
+  .sync-dot{
+    width:7px; height:7px;
+    border-radius:50%;
+    background: rgba(245,240,227,0.35);
+    flex-shrink:0;
+  }
+  .sync-btn.on .sync-dot{ background: var(--stencil); box-shadow: 0 0 6px var(--stencil); }
+  .sync-btn.on{ color: var(--stencil); border-color: var(--stencil); }
+
+  .sync-overlay{
+    position:absolute;
+    inset:0;
+    background: rgba(15,22,17,0.72);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding: 20px;
+  }
+  .sync-overlay.show{ display:flex; }
+  .sync-panel{
+    background: var(--panel);
+    border: 1px solid var(--kraft);
+    border-radius: 10px;
+    padding: 18px;
+    width:100%;
+    max-width: 380px;
+    max-height: 88vh;
+    overflow-y:auto;
+  }
+  .sync-panel-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+    font-size:14px;
+    color: var(--kraft);
+    margin-bottom:12px;
+  }
+  .sync-x{
+    background:none; border:none;
+    color: rgba(245,240,227,0.6);
+    font-size:18px;
+    cursor:pointer;
+    padding:2px 6px;
+  }
+  .sync-hint{
+    font-size:13px;
+    line-height:1.5;
+    color: rgba(245,240,227,0.65);
+    margin: 0 0 12px;
+  }
+  .sync-status-line{
+    font-family:'Oswald',sans-serif;
+    font-size:14px;
+    color: var(--stencil);
+    margin: 0 0 8px;
+  }
+  .sync-panel textarea, .sync-panel input[type="text"]{
+    width:100%;
+    background: var(--paper);
+    color: var(--ink);
+    border:none;
+    border-radius:6px;
+    padding: 10px 12px;
+    font-family:'Karla',sans-serif;
+    font-size:14px;
+    margin-bottom:10px;
+    box-sizing:border-box;
+  }
+  .sync-panel textarea{
+    min-height: 90px;
+    resize: vertical;
+    font-family: monospace;
+    font-size:12px;
+  }
+  .sync-primary, .sync-secondary{
+    width:100%;
+    border:none;
+    border-radius:6px;
+    padding: 12px;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:13px;
+    cursor:pointer;
+    margin-bottom:10px;
+  }
+  .sync-primary{ background: var(--stencil); color: var(--ink); }
+  .sync-secondary{ background:none; color: var(--stamp); border: 1px solid var(--stamp); }
+  .sync-error{
+    color: var(--stamp);
+    font-size:13px;
+    line-height:1.4;
+    margin-top: -2px;
+  }
+  .sync-hidden{ display:none; }
+
   /* ---------- TABS ---------- */
   nav.tabs{
     display:flex;
@@ -132,13 +253,14 @@
   /* ---------- ADD ROW ---------- */
   .add-row{
     display:flex;
+    flex-wrap:wrap;
     gap:8px;
     padding: 14px 16px;
     flex-shrink:0;
     border-bottom: 1px solid var(--line);
   }
   .add-row input{
-    flex:1;
+    flex:1 1 100%;
     background: var(--paper);
     color: var(--ink);
     border:none;
@@ -149,7 +271,21 @@
     font-weight:500;
   }
   .add-row input:focus{ outline: 2px solid var(--stencil); }
+  .add-row select#addCategorySelect{
+    flex:1;
+    background: var(--panel);
+    color: var(--paper);
+    border: 1px solid var(--kraft);
+    border-radius:4px;
+    padding: 0 8px;
+    font-family:'Oswald',sans-serif;
+    font-weight:500;
+    font-size:12px;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
   .add-row button{
+    flex:1;
     background: var(--kraft);
     color: var(--ink);
     border:none;
@@ -316,6 +452,29 @@
     cursor:pointer;
   }
 
+  .cat-header{
+    font-family:'Oswald', sans-serif;
+    font-size:12px;
+    font-weight:600;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color: var(--kraft);
+    padding: 16px 6px 6px;
+  }
+  .cat-header:first-child{ padding-top:4px; }
+
+  .cat-select{
+    flex-shrink:0;
+    background: transparent;
+    color: rgba(245,240,227,0.65);
+    border: 1px solid var(--line);
+    border-radius:20px;
+    padding: 4px 6px;
+    font-family:'Karla',sans-serif;
+    font-weight:500;
+    font-size:11px;
+    max-width: 112px;
+  }
   .list-tools{
     display:flex;
     gap:8px;
@@ -351,10 +510,45 @@
   <header>
     <div class="crate-label">Grocery Crate</div>
     <div class="tagline" id="tagline">your usual pantry, always on hand</div>
+    <button id="syncBtn" class="sync-btn">
+      <span class="sync-dot" id="syncDot"></span>
+      <span id="syncBtnText">Sync</span>
+    </button>
   </header>
+
+  <div class="sync-overlay" id="syncOverlay">
+    <div class="sync-panel">
+      <div class="sync-panel-head">
+        <span>Share with your household</span>
+        <button id="syncClose" class="sync-x">✕</button>
+      </div>
+
+      <div id="syncConnectedView" class="sync-hidden">
+        <p class="sync-status-line" id="syncStatusLine">Connected.</p>
+        <p class="sync-hint">Send this code to your partner. On their phone: open Sync, paste it in, tap Connect — that's it, both phones stay in sync.</p>
+        <button id="syncCopyBtn" class="sync-primary">Copy sync code</button>
+        <div id="syncCopiedNote" class="sync-hint sync-hidden">Copied. Paste it into a text or email to send it over.</div>
+        <textarea id="syncCodeOutput" class="sync-hidden" readonly></textarea>
+        <button id="syncDisconnectBtn" class="sync-secondary">Disconnect this phone</button>
+      </div>
+
+      <div id="syncSetupView">
+        <p class="sync-hint">
+          Paste a <b>sync code</b> your partner sent you, or your
+          <b>Firebase config</b> to start a new one (see README for the
+          5-minute free setup).
+        </p>
+        <textarea id="syncPasteArea" placeholder='Paste sync code, or the firebaseConfig {...} block'></textarea>
+        <input id="syncCodeInput" type="text" placeholder="Household code (only needed for a new Firebase config)" autocomplete="off">
+        <button id="syncConnectBtn" class="sync-primary">Connect</button>
+        <div id="syncError" class="sync-error sync-hidden"></div>
+      </div>
+    </div>
+  </div>
 
   <div class="add-row">
     <input id="addInput" type="text" placeholder="Add an item…" autocomplete="off" />
+    <select id="addCategorySelect"></select>
     <button id="addBtn">Add</button>
   </div>
 
@@ -418,7 +612,8 @@
       navigator.serviceWorker.register('service-worker.js').catch(function(){});
     });
   }
-  var pantry = [];       // {id, name}
+  var CATEGORIES = ['Pantry','Refrigerated','Toiletries','Household','Other'];
+  var pantry = [];       // {id, name, category}
   var shoppingList = []; // {id, name, checked}
   var activeTab = 'pantry';
   var selectedForList = {}; // pantry id -> true
@@ -426,6 +621,7 @@
 
   var mainEl = document.getElementById('main');
   var addInput = document.getElementById('addInput');
+  var addCategorySelect = document.getElementById('addCategorySelect');
   var addBtn = document.getElementById('addBtn');
   var tabPantry = document.getElementById('tabPantry');
   var tabList = document.getElementById('tabList');
@@ -435,6 +631,18 @@
   var fabText = document.getElementById('fabText');
   var fabAction = document.getElementById('fabAction');
   var tagline = document.getElementById('tagline');
+
+  CATEGORIES.forEach(function(c){
+    var opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    addCategorySelect.appendChild(opt);
+  });
+
+  function catSelectHTML(selected){
+    return CATEGORIES.map(function(c){
+      return '<option value="'+c+'"'+(c===selected?' selected':'')+'>'+c+'</option>';
+    }).join('');
+  }
 
   function uid(){ return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -452,12 +660,196 @@
   }
 
   async function savePantry(){
-    try{ await STORAGE.set('pantry', JSON.stringify(pantry), false); }
-    catch(e){ console.error('save pantry failed', e); }
+    cachePantryLocal();
+    if(pantryRef){ try{ pantryRef.set(pantry); }catch(e){} }
   }
   async function saveList(){
-    try{ await STORAGE.set('shopping-list', JSON.stringify(shoppingList), false); }
-    catch(e){ console.error('save list failed', e); }
+    cacheListLocal();
+    if(listRef){ try{ listRef.set(shoppingList); }catch(e){} }
+  }
+  function cachePantryLocal(){ STORAGE.set('pantry', JSON.stringify(pantry), false).catch(function(){}); }
+  function cacheListLocal(){ STORAGE.set('shopping-list', JSON.stringify(shoppingList), false).catch(function(){}); }
+
+  /* ---------- SYNC (Firebase Realtime Database) ---------- */
+  var pantryRef = null, listRef = null, currentSyncApp = null;
+  var currentSyncConfig = null, currentSyncCode = null;
+
+  var syncBtn = document.getElementById('syncBtn');
+  var syncDot = document.getElementById('syncDot');
+  var syncBtnText = document.getElementById('syncBtnText');
+  var syncOverlay = document.getElementById('syncOverlay');
+  var syncClose = document.getElementById('syncClose');
+  var syncSetupView = document.getElementById('syncSetupView');
+  var syncConnectedView = document.getElementById('syncConnectedView');
+  var syncStatusLine = document.getElementById('syncStatusLine');
+  var syncPasteArea = document.getElementById('syncPasteArea');
+  var syncCodeInput = document.getElementById('syncCodeInput');
+  var syncConnectBtn = document.getElementById('syncConnectBtn');
+  var syncError = document.getElementById('syncError');
+  var syncCopyBtn = document.getElementById('syncCopyBtn');
+  var syncCopiedNote = document.getElementById('syncCopiedNote');
+  var syncCodeOutput = document.getElementById('syncCodeOutput');
+  var syncDisconnectBtn = document.getElementById('syncDisconnectBtn');
+
+  function sanitizeCode(code){
+    return String(code).trim().toLowerCase().replace(/[.#$\[\]\/\s]+/g, '-').slice(0, 60);
+  }
+
+  function showSyncError(msg){
+    syncError.textContent = msg;
+    syncError.classList.remove('sync-hidden');
+  }
+  function clearSyncError(){
+    syncError.textContent = '';
+    syncError.classList.add('sync-hidden');
+  }
+
+  function updateSyncUI(){
+    var connected = !!pantryRef;
+    syncBtn.classList.toggle('on', connected);
+    syncBtnText.textContent = connected ? 'Synced' : 'Sync';
+    syncConnectedView.classList.toggle('sync-hidden', !connected);
+    syncSetupView.classList.toggle('sync-hidden', connected);
+    if(connected){
+      syncStatusLine.textContent = 'Connected as household "' + currentSyncCode + '".';
+    }
+  }
+
+  function openSyncPanel(){ syncOverlay.classList.add('show'); clearSyncError(); }
+  function closeSyncPanel(){ syncOverlay.classList.remove('show'); }
+  syncBtn.addEventListener('click', openSyncPanel);
+  syncClose.addEventListener('click', closeSyncPanel);
+
+  function tryParseSyncCode(text){
+    try{
+      var obj = JSON.parse(text);
+      if(obj && typeof obj === 'object' && obj.config && obj.code) return obj;
+    }catch(e){}
+    return null;
+  }
+  function tryParseFirebaseConfigLiteral(text){
+    try{
+      var cleaned = text.trim()
+        .replace(/^(const|var|let)\s+\w+\s*=\s*/, '')
+        .replace(/;\s*$/, '');
+      var obj = new Function('return (' + cleaned + ')')();
+      if(obj && typeof obj === 'object' && obj.apiKey) return obj;
+    }catch(e){}
+    return null;
+  }
+
+  function teardownSync(){
+    if(pantryRef) pantryRef.off();
+    if(listRef) listRef.off();
+    pantryRef = null; listRef = null;
+    if(currentSyncApp){
+      try{ currentSyncApp.delete(); }catch(e){}
+      currentSyncApp = null;
+    }
+  }
+
+  function connectSync(config, code, isRestoring){
+    clearSyncError();
+    if(!config || !config.apiKey){
+      showSyncError("That doesn't look like a Firebase config — paste the full firebaseConfig block from your project settings.");
+      return;
+    }
+    if(!config.databaseURL){
+      showSyncError('That config is missing a databaseURL. In the Firebase console, create a Realtime Database first, then copy the config again.');
+      return;
+    }
+    var cleanCode = sanitizeCode(code || '');
+    if(!cleanCode){
+      showSyncError('Enter a household code — any short word both phones will use, like "smithkitchen".');
+      return;
+    }
+
+    teardownSync();
+    try{
+      currentSyncApp = firebase.initializeApp(config, 'household-sync-' + Date.now());
+      var db = currentSyncApp.database();
+      pantryRef = db.ref('households/' + cleanCode + '/pantry');
+      listRef = db.ref('households/' + cleanCode + '/shoppingList');
+    }catch(e){
+      showSyncError('Could not connect: ' + e.message);
+      pantryRef = null; listRef = null;
+      return;
+    }
+
+    pantryRef.on('value', function(snap){
+      pantry = snap.val() || [];
+      cachePantryLocal();
+      if(loaded) render();
+    }, function(err){
+      showSyncError('Sync error: ' + err.message);
+    });
+    listRef.on('value', function(snap){
+      shoppingList = snap.val() || [];
+      cacheListLocal();
+      if(loaded) render();
+    }, function(err){
+      showSyncError('Sync error: ' + err.message);
+    });
+
+    currentSyncConfig = config;
+    currentSyncCode = cleanCode;
+    STORAGE.set('sync-config', JSON.stringify({config: config, code: cleanCode}), false).catch(function(){});
+    updateSyncUI();
+    if(!isRestoring) closeSyncPanel();
+  }
+
+  function disconnectSync(){
+    teardownSync();
+    currentSyncConfig = null; currentSyncCode = null;
+    STORAGE.delete('sync-config', false).catch(function(){});
+    updateSyncUI();
+  }
+
+  syncConnectBtn.addEventListener('click', function(){
+    var pasted = syncPasteArea.value.trim();
+    if(!pasted){ showSyncError('Paste a sync code or a Firebase config first.'); return; }
+    var shareObj = tryParseSyncCode(pasted);
+    if(shareObj){
+      connectSync(shareObj.config, shareObj.code, false);
+      return;
+    }
+    var cfg = tryParseFirebaseConfigLiteral(pasted);
+    if(cfg){
+      connectSync(cfg, syncCodeInput.value, false);
+      return;
+    }
+    showSyncError("Couldn't read that. Paste either a sync code your partner sent, or the firebaseConfig block from Firebase.");
+  });
+
+  syncCopyBtn.addEventListener('click', function(){
+    var payload = JSON.stringify({config: currentSyncConfig, code: currentSyncCode});
+    function showNote(){
+      syncCopiedNote.classList.remove('sync-hidden');
+      setTimeout(function(){ syncCopiedNote.classList.add('sync-hidden'); }, 4000);
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(payload).then(showNote).catch(function(){
+        syncCodeOutput.value = payload;
+        syncCodeOutput.classList.remove('sync-hidden');
+        syncCodeOutput.select();
+      });
+    } else {
+      syncCodeOutput.value = payload;
+      syncCodeOutput.classList.remove('sync-hidden');
+      syncCodeOutput.select();
+    }
+  });
+
+  syncDisconnectBtn.addEventListener('click', disconnectSync);
+
+  async function restoreSync(){
+    try{
+      var saved = await STORAGE.get('sync-config', false);
+      if(saved){
+        var parsed = JSON.parse(saved.value);
+        if(parsed && parsed.config && parsed.code) connectSync(parsed.config, parsed.code, true);
+      }
+    }catch(e){}
   }
 
   function switchTab(tab){
@@ -465,6 +857,7 @@
     tabPantry.classList.toggle('active', tab==='pantry');
     tabList.classList.toggle('active', tab==='list');
     addInput.placeholder = tab==='pantry' ? 'Add an item to your pantry…' : 'Add an item to this trip…';
+    addCategorySelect.style.display = tab==='pantry' ? '' : 'none';
     tagline.textContent = tab==='pantry' ? 'your usual pantry, always on hand' : 'check items off as you shop';
     render();
   }
@@ -475,7 +868,7 @@
     var val = addInput.value.trim();
     if(!val) return;
     if(activeTab === 'pantry'){
-      pantry.push({id: uid(), name: val});
+      pantry.push({id: uid(), name: val, category: addCategorySelect.value});
       savePantry();
     } else {
       shoppingList.push({id: uid(), name: val, checked:false});
@@ -533,53 +926,77 @@
         mainEl.innerHTML = '<div class="empty">Your pantry is empty.<br>Add the things you usually buy above.</div>';
         return;
       }
-      pantry.forEach(function(item){
-        var row = document.createElement('div');
-        row.className = 'row pantry-row';
-        row.dataset.id = item.id;
+      CATEGORIES.forEach(function(cat){
+        var items = pantry.filter(function(p){ return (p.category || 'Other') === cat; });
+        if(items.length === 0) return;
 
-        var cb = document.createElement('div');
-        cb.className = 'checkbox' + (selectedForList[item.id] ? ' checked' : '');
-        cb.innerHTML = checkSvg();
-        cb.addEventListener('click', function(){
-          selectedForList[item.id] = !selectedForList[item.id];
-          render();
-        });
+        var header = document.createElement('div');
+        header.className = 'cat-header';
+        header.textContent = cat;
+        mainEl.appendChild(header);
 
-        var name = document.createElement('input');
-        name.className = 'item-name';
-        name.value = item.name;
-        name.addEventListener('change', function(){
-          item.name = name.value.trim() || item.name;
-          savePantry();
-        });
+        items.forEach(function(item){
+          var row = document.createElement('div');
+          row.className = 'row pantry-row';
+          row.dataset.id = item.id;
+          row.dataset.category = cat;
 
-        var onList = shoppingList.some(function(s){ return s.name.toLowerCase() === item.name.toLowerCase() && !s.checked; });
-        if(onList){
-          var tag = document.createElement('span');
-          tag.className = 'stamp';
-          tag.style.opacity = '0.85';
-          tag.textContent = 'ON LIST';
+          var handle = document.createElement('div');
+          handle.className = 'handle';
+          handle.innerHTML = '&#8942;&#8942;';
+          row.appendChild(handle);
+
+          var cb = document.createElement('div');
+          cb.className = 'checkbox' + (selectedForList[item.id] ? ' checked' : '');
+          cb.innerHTML = checkSvg();
+          cb.addEventListener('click', function(){
+            selectedForList[item.id] = !selectedForList[item.id];
+            render();
+          });
           row.appendChild(cb);
-          row.appendChild(name);
-          row.appendChild(tag);
-        } else {
-          row.appendChild(cb);
-          row.appendChild(name);
-        }
 
-        var del = document.createElement('button');
-        del.className = 'del';
-        del.textContent = '✕';
-        del.addEventListener('click', function(){
-          pantry = pantry.filter(function(p){ return p.id !== item.id; });
-          delete selectedForList[item.id];
-          savePantry();
-          render();
+          var name = document.createElement('input');
+          name.className = 'item-name';
+          name.value = item.name;
+          name.addEventListener('change', function(){
+            item.name = name.value.trim() || item.name;
+            savePantry();
+          });
+          row.appendChild(name);
+
+          var onList = shoppingList.some(function(s){ return s.name.toLowerCase() === item.name.toLowerCase() && !s.checked; });
+          if(onList){
+            var tag = document.createElement('span');
+            tag.className = 'stamp';
+            tag.style.opacity = '0.85';
+            tag.textContent = 'ON LIST';
+            row.appendChild(tag);
+          }
+
+          var catSel = document.createElement('select');
+          catSel.className = 'cat-select';
+          catSel.innerHTML = catSelectHTML(cat);
+          catSel.addEventListener('change', function(){
+            item.category = catSel.value;
+            savePantry();
+            render();
+          });
+          row.appendChild(catSel);
+
+          var del = document.createElement('button');
+          del.className = 'del';
+          del.textContent = '✕';
+          del.addEventListener('click', function(){
+            pantry = pantry.filter(function(p){ return p.id !== item.id; });
+            delete selectedForList[item.id];
+            savePantry();
+            render();
+          });
+          row.appendChild(del);
+
+          mainEl.appendChild(row);
+          initDrag(handle, row, pantry, savePantry, '.pantry-row', function(r){ return r.dataset.category === cat; });
         });
-        row.appendChild(del);
-
-        mainEl.appendChild(row);
       });
     } else {
       var tools = document.createElement('div');
@@ -669,14 +1086,25 @@
         row.appendChild(del);
 
         mainEl.appendChild(row);
-        initDrag(handle, row);
+        initDrag(handle, row, shoppingList, saveList, '.row', null);
       });
     }
   }
 
-  /* ---------- DRAG TO REORDER (shopping list only) ---------- */
-  function initDrag(handle, row){
+  /* ---------- DRAG TO REORDER ----------
+     list: the array to reorder (pantry or shoppingList)
+     saveFn: persistence function to call after reorder
+     rowSelector: which rows count as siblings ('.row' or '.pantry-row')
+     scopeFilter: optional function(rowEl) -> bool; when given, only rows
+     passing it are considered siblings (used to keep pantry drags inside
+     their own category section) */
+  function initDrag(handle, row, list, saveFn, rowSelector, scopeFilter){
     var startY = 0, dragging = false, placeholder = null, rowH = 0;
+
+    function siblingRows(){
+      var all = Array.prototype.slice.call(mainEl.querySelectorAll(rowSelector)).filter(function(r){ return r !== row; });
+      return scopeFilter ? all.filter(scopeFilter) : all;
+    }
 
     handle.addEventListener('pointerdown', function(e){
       e.preventDefault();
@@ -698,7 +1126,7 @@
       var dy = e.clientY - startY;
       row.style.transform = 'translateY(' + dy + 'px)';
 
-      var siblings = Array.prototype.slice.call(mainEl.querySelectorAll('.row')).filter(function(r){ return r !== row; });
+      var siblings = siblingRows();
       var rowRect = row.getBoundingClientRect();
       var rowMid = rowRect.top + rowRect.height/2;
 
@@ -729,16 +1157,18 @@
       }
       placeholder = null;
 
-      // rebuild shoppingList order from DOM
-      var ids = Array.prototype.slice.call(mainEl.querySelectorAll('.row')).map(function(r){ return r.dataset.id; });
-      shoppingList.sort(function(a,b){ return ids.indexOf(a.id) - ids.indexOf(b.id); });
-      saveList();
+      // rebuild the list's order from final DOM order
+      var ids = Array.prototype.slice.call(mainEl.querySelectorAll(rowSelector)).map(function(r){ return r.dataset.id; });
+      list.sort(function(a,b){ return ids.indexOf(a.id) - ids.indexOf(b.id); });
+      saveFn();
     }
     handle.addEventListener('pointerup', endDrag);
     handle.addEventListener('pointercancel', endDrag);
   }
 
+  updateSyncUI();
   loadData();
+  restoreSync();
 })();
 </script>
 </body>

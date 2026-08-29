@@ -33,14 +33,59 @@ Open that URL on your phone in a browser, then:
 It'll launch full-screen from your home screen icon, just like a regular app,
 and keeps working without a connection after the first load.
 
+## 4. Share your lists with your household (optional)
+
+By default your pantry and shopping list live only on your phone. If you
+want to share them live with a partner or family member — so both of you see
+the same lists update in real time — set up free sync:
+
+### One-time setup (do this once, on either phone)
+
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+   and sign in with any Google account.
+2. Click **Add project**, give it any name (e.g. "our-groceries"), and
+   finish the wizard (you can turn off Google Analytics — you don't need it).
+3. In your new project, go to **Build → Realtime Database** → **Create
+   Database**. Pick any location, and choose **Start in test mode** when
+   asked about rules, then **Enable**.
+   - Test mode means anyone with your project's config and your chosen
+     household code could read or write your lists. That's fine for a
+     private household list, but don't post the config publicly. If you
+     want it locked down further later, Firebase's docs cover tightening
+     the database rules.
+4. Back on the project **Overview** page, click the **`</>`** (web) icon to
+   register a web app. Give it any nickname and click **Register app** —
+   you don't need Firebase Hosting.
+5. You'll see a code block that starts with `const firebaseConfig = {`.
+   Copy that whole block.
+
+### In the app
+
+1. Open **Grocery Crate**, tap **Sync** (top right).
+2. Paste the `firebaseConfig` block into the box, type a household code —
+   any short word only your household will use (e.g. `smithkitchen`) — and
+   tap **Connect**.
+3. Once connected, tap **Copy sync code** and send that (via text, email,
+   whatever) to your partner.
+4. On their phone: install the app the same way (steps 1–3 above), open
+   **Sync**, paste the code you sent, and tap **Connect**. No need to
+   re-enter the config or household code — the sync code carries both.
+
+From then on, both phones stay in sync automatically. Either of you can tap
+**Disconnect this phone** in the Sync panel to go back to a private,
+device-only list at any time.
+
 ## About your data
 
-Your pantry and shopping list are saved right on your phone (in the browser's
-local storage), not on a server. That means:
+Without sync set up, your pantry and shopping list are saved right on your
+phone (in the browser's local storage), not on a server — private to that
+device, won't sync anywhere, and clearing your browser's site data for this
+app will erase them.
 
-- It's private to that device and that browser.
-- It won't sync between your phone and, say, a laptop.
-- Clearing your browser's site data/cache for this app will erase your lists.
+With sync set up, your lists live in your Firebase Realtime Database
+instead (Google's free tier — no cost for a household-sized list), and a
+local copy is still cached on each phone so the app keeps working offline
+and catches up once you're back online.
 
 ## Files in this package
 
